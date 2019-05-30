@@ -1,0 +1,484 @@
+---
+title: "An R Package for Developing Climate Change Conditioned Advice for Fisheries (CCCA)"
+author: "Daniel Duplisea, Marie-Julie Roux, Karen Hunter, Jake Rice"
+date: " 10 May 2019"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### CCCA model background
+
+The goal of the ccca package is to generate climate change conditioned advice for fisheries. Based on data inputs of a survey index time series, a catch time series and a climate change variable thought
+to affect stock production, a simple model is derived. This model is projected given climate scenarios that you provide using a built in function. This is done by fitting a normal distribution to your climate variable time series and then resamples it for a specified number of years into the future and for the number of Monte Carlo projection runs you want. You can shift the mean of this distribution to reflect a new stable state for the climate variable. The variance of this distribution can also be altered to reflect the future climate scenario. You can also easily develop your own scenario based on a different distribution, non-parametric resampling of the climate series or say a directional change in the climate variable, i.e. not a new stable state.
+
+
+Various plotting functions are provided. You can find risk equivalent F strategies for a climate
+change scenario versus your baseline scenario. The contour plots show how the reference point risk changes with climate change. You can also determine climate conditioning factors to multiply the management tool (e.g. F, TAC) to condition the advice to climate change induced productivty changes in the tock and a risk equivalent fishing strategy.
+
+
+The model was developed considering both density dependent and independent stock dynamics.
+
+
+## The case study
+
+Gulf of St. Lawrence Greenland halibut also called turbot was used here as a case study. This is cold water seeking species which in the Gulf prefers depths >200m. It is also a stock which seems to be susceptible to relatively small changes in bottom water temperature and the growth rate of the stock seems closely related to bottom water temperature. This stock also has a good time series for the survey since 1990, landings and there are good temperature time series at relevant depths for the stock. There also is not a model for the stock. The data available for the stock is characterisitic for many Canadian fish and invertebrate stocks and because it is without a model, we label the situation as characteristic data moderate.
+
+## The objective, risk and time period
+
+The objective considered here is a target objective. We setup a reference period (1995-2000) as a period when catches were good, relatively stable and the stock was healthy. Thus this is like a Bmsy target. A relative exploitation rate reference was developed from the same period. Because it is a target, by definition there is a 50% risk level for not achieving the target. This is essentially saying that for a target, the biomass will be above it 50% of the time and below it 50% of the time. We also set a period of 10 years as the maximum allowable time frame for achieving the objective which is largely a reflection of the population growth capacity for this particular stock.
+
+
+Other biomass objectives and risk levels could also be chosen. For example a Blim might be represented by 40% of reference period biomass but it would also be necessary to decrease the risk tolerance for failure as well as the time period. So perhaps a risk level of 10% and time period of 5 years would be more appopriate for such an objective.
+
+## Installation
+
+``` r
+library(devtools)
+install_github("duplisea/ccca")
+```
+## Setting up a base case P/B model fitting projection simulation
+
+```{r loadccca, message=FALSE}
+library(ccca)
+```
+
+## Run the basic model fit and projection simulation
+
+A default parameters file (params) comes with the package. It is a list with options needed to fit the P/B model and run projections. The mapply step just moves each list object into the global environment rather than calling the list element each time in Monte Carlo simulations so it is faster and it also does not alter the base parameterisation in the list so you can return to it later.
+```{r params, results='hide'}
+data(params)
+mapply(assign, names(params), params, MoreArgs=list(envir = globalenv()))
+```
+
+Determine the annual P/B ratio of the population creating a dataframe with the index bumped by q
+```{r fitpb}
+PB= PB.f(turbot, ref.years=ref.years, q=q)
+```
+
+
+Fit a relationship between the P/B and the E variable according to what you selected in params
+```{r pvse}
+PvsE= PBE.fit.f(PB,model.type=model.type, knots=knots, poly.degree=poly.degree)
+```
+
+
+Fit a normal distribution to the E time series and pull the parameters out.
+```{r enorm}
+Enorm= norm.fit.f(E=PB$E)
+Edist.a=Enorm$estimate[1]
+Edist.b=Enorm$estimate[2]
+```
+
+Develop the E projection values based on your choice of projection parameters
+```{r eprojectionnorm}
+Eproj= Eprojnorm.f(Edist.a=Edist.a, Edist.b=Edist.b, Emean.shift=Emean.shift, proj.years=proj.years, N)
+```
+
+
+Develop the PB projection values based on the P/B vs E fit and the E projection you specified above. When add.residuals=1 then a residual is sampled for each time step of each projection and is added to the P/B values. If the P/B vs E fit is relatively unbiased then it will not make much difference to the median but it will increase the future uncertainty. If you set it =0 then the residual is not added and you will have less uncertainty in the future. If the P/B vs E model is biased, this bias will be more likely to be carried forward if residuals are not sampled (=0).
+```{r pbprojection}
+PBproj= PB.for.projection.f(PvsE=PvsE,Eproj,add.residuals=add.resids)
+```
+
+
+The fishing strategy. In this case is the the mean exploitation (Index corrected by catchability) during the last five years.
+```{r fishing}
+Fstrat= F.strategy(PB, 2014:2018, moratorium=F)
+```
+
+
+Run the projection given all the above calculations and parameters. The trajectory over the projection period and the probability that B is greater than the objective after the specified time range.
+```{r runproj}
+Bproj= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj, Fstrat, K=K, theta=1)
+Fout= Fseq.f(PB,PBproj=PBproj,Fseq=fs,time.frame=time.frame, N=N, K=K)
+PofF= PofF.f(PB,Fout,ref.pt=ref.pt)
+```
+
+
+Summarises the output of the projections by calculating quantiles and putting results in a dataframe. Calculates the probability of being at or above a reference point.
+```{r sumproj}
+Bproj.summary= Bproj.summary.f(PB,Bproj,PBproj,Eproj)
+P= rankprob.f(Bproj,PB,ref.pt)
+```
+
+
+We have done all of the above again but for different climate scenario mean shift, one warm and one cold, one with status quo mean temperature but increased variance and finally a null model run where P/B does not depend on E. It is not shown here but you do it by modifying the Emean.shift and Evariance parameters and re-running the above steps. These projection objects have names warm, cold, E.var.inc to distinguish them from the base run and they appear in the figures
+
+```{r projnull,include=FALSE}
+  PvsE.null= PBE.fit.f(PB,model.type="avg", knots=knots, poly.degree=poly.degree)
+  PBproj.null= PB.for.projection.f(PvsE=PvsE.null,Eproj,add.residuals=add.resids)
+  Bproj.null= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj.null, Fstrat, K=K, theta=1)
+  Fout.null= Fseq.f(PB,PBproj=PBproj.null,Fseq=fs,time.frame=time.frame, N=N, K=K)
+  PofF.null= PofF.f(PB,Fout.null,ref.pt=ref.pt)
+  Bproj.summary.null= Bproj.summary.f(PB,Bproj.null,PBproj.null,Eproj)
+  P.null= rankprob.f(Bproj.null,PB,ref.pt)
+```
+
+
+```{r projwarm,include=FALSE}
+Emean.shift.warm=0.5
+Eproj.warm= Eprojnorm.f(Edist.a=Edist.a, Edist.b=Edist.b, Emean.shift=Emean.shift.warm, proj.years=proj.years, N)
+PBproj.warm= PB.for.projection.f(PvsE=PvsE,Eproj.warm,add.residuals=add.resids)
+Bproj.warm= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj.warm, Fstrat, K=K, theta=1)
+Fout.warm= Fseq.f(PB,PBproj=PBproj.warm,Fseq=fs,time.frame=time.frame, N=N, K=K)
+PofF.warm= PofF.f(PB,Fout.warm,ref.pt=ref.pt)
+Bproj.summary.warm= Bproj.summary.f(PB,Bproj.warm,PBproj.warm,Eproj.warm)
+P.warm= rankprob.f(Bproj.warm,PB,ref.pt)
+```
+
+
+```{r projcold,include=FALSE}
+Emean.shift.cold=-0.5
+Eproj.cold= Eprojnorm.f(Edist.a=Edist.a, Edist.b=Edist.b, Emean.shift=Emean.shift.cold, proj.years=proj.years, N)
+PBproj.cold= PB.for.projection.f(PvsE=PvsE,Eproj.cold,add.residuals=add.resids)
+Bproj.cold= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj.cold, Fstrat, K=K, theta=1)
+Fout.cold= Fseq.f(PB,PBproj=PBproj.cold,Fseq=fs,time.frame=time.frame, N=N, K=K)
+PofF.cold= PofF.f(PB,Fout.cold,ref.pt=ref.pt)
+Bproj.summary.cold= Bproj.summary.f(PB,Bproj.cold,PBproj.cold,Eproj.cold)
+P.cold= rankprob.f(Bproj.cold,PB,ref.pt)
+```
+
+```{r projincvar,include=FALSE}
+Emean.shift=0.0
+E.var.inc=1.5
+Edist.b= Edist.b*E.var.inc
+Eproj.var= Eprojnorm.f(Edist.a=Edist.a, Edist.b=Edist.b, Emean.shift=Emean.shift,
+  proj.years=proj.years, N)
+PBproj.var= PB.for.projection.f(PvsE=PvsE,Eproj.var,add.residuals=add.resids)
+Bproj.var= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj.var, Fstrat, K=K, theta=1)
+Fout.var= Fseq.f(PB,Fseq=fs,PBproj=PBproj.var,time.frame=time.frame, N=N, K=K)
+PofF.var= PofF.f(PB,Fout.var,ref.pt=ref.pt)
+Bproj.summary.var= Bproj.summary.f(PB,Bproj.var,PBproj.var,Eproj.var)
+P.var= rankprob.f(Bproj.var,PB,ref.pt)
+```
+
+```{r resetEdist,include=FALSE}
+# need to reset the e distribution parameters to run the full F, E simulation
+Edist.a=Enorm$estimate[1]
+Edist.b=Enorm$estimate[2]
+```
+
+Run mutliple simulations for each combination of E scenario and F. First the E and PB scenarios are set up and then multiple projections are made based on the exploitation rate series specified in the parameters file.
+```{r CCF,eval=FALSE}
+ECCF= Eproj.list.f(Emean.shifts=Emean.shifts, N=N.CCF, proj.years=proj.years, Edist.a=Edist.a,
+  Edist.b=Edist.b)
+PBCCF= PBproj.list.f(PvsE=PvsE, Eprojection=ECCF)
+CCF.raw= P.R.for.EF.f(E.CCF=ECCF, PB.CCF=PBCCF, Fs=fs, PB=PB, ref.pt=ref.pt, Bstart.mult=Bstart.mult,
+  K=K, theta=theta)
+```
+
+```{r CCFsave, include=FALSE, eval=FALSE}
+save(ECCF,file="ECCF.rda")
+save(PBCCF,file="PBCCF.rda")
+save(CCF.raw,file="CCF.rda")
+```
+
+
+```{r loadCCF,include=FALSE, eval=TRUE}
+load("ECCF.rda")
+load("PBCCF.rda")
+load("CCF.rda")
+```
+
+
+## Plots of the data and projections
+
+
+The plot of the Gulf of St Lawrence showing the main fishing areas for turbot
+```{r map, echo=FALSE,fig.cap="Figure 1: Map of the Gulf of St Lawrence showing the main turbot fishing areas."}
+map.f(longs=c(-70,-57),lats=c(46,52))
+polygon(fishing.area1$X,fishing.area1$Y,col="green",density=NA,border=NA,angle=0)
+polygon(fishing.area2$X,fishing.area2$Y,col="green",density=NA,border=NA,angle=0)
+polygon(fishing.area3$X,fishing.area3$Y,col="green",density=NA,border=NA,angle=0)
+bathy=T
+if (bathy){
+  isob=c(150,300)
+  isob.col= c("blue","slategrey")
+  ocCL = contourLines(ocBathy, levels =isob)
+  ocCP = convCP(ocCL, projection = "LL")
+  ocPoly = ocCP$PolySet
+  addLines(thinPolys(ocPoly, tol=1,filter = 5), col =isob.col)
+  legend("bottomleft", bty = "n", col = isob.col, lwd = 1, legend = as.character(isob), inset = 0.05,
+     title = "Isobaths (m)",cex=0.7)
+}
+mtext("Longitude west", side=1,line=2.7,cex=1.2)
+mtext("Latitude north", side=2,line=3.5,cex=1.2)
+#inset map to place in North America
+	par(fig = c(0,0.4,.6,.83), new = T) #position of the inset box on the current map
+	map.inset.f(longs=c(-130,-50),lats=c(10,65)) #coordinates of land area covered by inset
+	rect(-70,46,-57,52,border="blue",lwd=1) #smaller area highlighted in the inset
+	box(lwd=2,col="black")
+```
+
+
+The basic data time series for the index, catch and E variable
+```{r inputs, echo=FALSE,fig.cap="Figure 2: the basic inputs to the P/B model."}
+matplot(turbot$Year, cbind(turbot$Index,turbot$Catch),type="l",lty=c(1,1),lwd=2,xlab="Year",ylab="Survey biomass and catch (kt)",col=c("black","green"))
+yaxis2.f(turbot$Year, turbot$E,ylabel=expression('Temperature ('^o*C*')'),type="l",cex=1.1,lwd=2,lty=1,col="red")
+legend("topleft",bty="n",legend=c("Survey","Catch","Temperature"),lwd=2,lty=c(1),cex=0.7,col=c("black","green","red"))
+```
+
+
+The Kobe plot of the historical data with the E variable colour coded on top of the points. There is function called Kobe.f to do this.
+```{r kobe,fig.cap="Figure 3: a Kobe plot of biomass relative to the reference period (1995-2000) biomass and the relative exploitation rate in the reference period. The water temperature at 250 m is colour coded on top (blue-red:cold-warm)."}
+Kobe.f(PB=PB,E=PB$E)
+colramp.legend(col1="red", col2="blue", ncol=length(PB$E), 2.5, 3.5, 2.7, 4.5)
+```
+
+
+The P/B vs E data plot and fitted model.
+```{r pvseplot, echo=FALSE,fig.cap="Figure 4: The relationship between the stock P/B ratio and the environmental variable (temperature at 250 m) with an adaptive GAM model fitted to the relationship."}
+PvsE= PBE.fit.f(PB,model.type=model.type, knots=knots, poly.degree=poly.degree)
+na.year= nrow(PB)
+plot(na.omit(cbind(PB$E,PB$PB)),pch=20,xlab="E",ylab="P/B",col="darkgrey",type="n")
+text(PB$E[-na.year],PB$PB[-na.year],PB$Year[-na.year],cex=.7)
+pred.x= seq(min(PB$E)*.90,max(PB$E)*1.05,length=1000)
+lines(pred.x,predict(PvsE.null,newdata=data.frame(E=pred.x)),lwd=2,col="grey")
+lines(pred.x,predict(PvsE,newdata=data.frame(E=pred.x)),lwd=2)
+```
+
+
+The normal distrubtion fitted to the E series which is sampled for future climate projections altering the mean and variance for different climate scenarios.
+```{r gammaplot, echo=FALSE,fig.cap="Figure 5: The distributions of temperature used for projection scenarios. Black is the baseline where the distribution was fitted to all years; red is shift in the mean 0.5 C warmer than the baseline; blue line is 0.5 C colder than the baseline; green line has the same mean as the baseline but a 50% increase in standard deviation."}
+Nrand=1000000
+Edist.a=Enorm$estimate[1]
+Edist.b=Enorm$estimate[2]
+Ebase=density(norm.plot.f(Nrand=Nrand, Edist.a=Edist.a, Edist.b=Edist.b,Emean.shift=0,E.var.inc=1))
+Ewarm=density(norm.plot.f(Nrand=Nrand, Edist.a=Edist.a, Edist.b=Edist.b,Emean.shift=Emean.shift.warm,E.var.inc=1))
+Ecold=density(norm.plot.f(Nrand=Nrand, Edist.a=Edist.a, Edist.b=Edist.b,Emean.shift=Emean.shift.cold,E.var.inc=1))
+Evar=density(norm.plot.f(Nrand=Nrand, Edist.a=Edist.a, Edist.b=Edist.b,Emean.shift=0,E.var.inc=1.5))
+plot(Ebase, xlab=expression('Temperature('^o*C*')'), ylab="Density",xlim=c(0,6),lwd=2,main="")
+lines(Ewarm, lwd=2,col="red")
+lines(Ecold, lwd=2,col="blue")
+lines(Evar, lwd=2,col="green")
+```
+
+
+The distribution of the P/B values for the future projections. It is the P/B that results by sampling E distribution function to simulate a future climate and while altering the mean and variance if desired. The P/B distribution is then deermined by running sampled E value through the fitted P/B vs E relationship.
+```{r PBprojplot, echo=FALSE,fig.cap="Figure 6: the P/B distributions used in projections for the different climate scenarios. Black is the baseline where the temperature distribution was fitted to all years; red is shift in the mean 0.5 C warmer than the baseline; blue line is 0.5 C colder than the baseline; green line has the same mean as the baseline but a 50% increase in standard deviation"}
+plot(density(PBproj.null),xlab="P/B",ylab="Density",lwd=2,main="",col="grey")
+lines(density(PBproj.cold),lwd=2,col="blue")
+lines(density(PBproj.warm),lwd=2,col="red")
+lines(density(PBproj.var),lwd=2,col="green")
+lines(density(PBproj),lwd=2,col="black")
+```
+
+
+The plot of the projection given your E scenario for both density independent and dependent models. The biomass reference level is depicted as the horizontal dashed line. Confidence intervals are 90%.
+```{r projplotbase, echo=FALSE,fig.cap="Figure 7: the projection of the baseline temperature scenario. Status quo exploitation rate (mean 2014-2018) was assumed."}
+par(mfcol=c(5,1),mar=c(1,4,2,2),omi=c(.6,2.2,.1,2.2))
+Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+plot(Bproj.summary.null$year,Bproj.summary.null$B.di.CI.med,type="n",ylim=c(0,max(Bproj.summary.null$B.di.CI.high)),xlab="",ylab="")
+confint(Bproj.summary.null$year,Bproj.summary.null$B.di.CI.low,Bproj.summary.null$B.di.CI.high,col="grey")
+confint(Bproj.summary.null$year,Bproj.summary.null$B.dd.CI.low,Bproj.summary.null$B.dd.CI.high,col="lightblue")
+lines(Bproj.summary.null$year,Bproj.summary.null$B.dd.CI.med,lwd=2,col="blue")
+lines(Bproj.summary.null$year,Bproj.summary.null$B.dd.CI.low,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.null$year,Bproj.summary.null$B.dd.CI.high,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.null$year,Bproj.summary.null$B.di.CI.med,lwd=2)
+lines(Bproj.summary.null$year,Bproj.summary.null$B.di.CI.low,lwd=1,lty=2,col="black")
+lines(Bproj.summary.null$year,Bproj.summary.null$B.di.CI.high,lwd=1,lty=2,col="black")
+lines(Bproj.summary.null$year,rep(Bref,length(Bproj.summary.null$year)),lty=2)
+legend("topright",legend=c("Density independent","Density dependent"),lwd=2,col=c("black","blue"),bty="n",cex=0.75)
+legend("topleft",legend="Null",bty="n",cex=0.75)
+
+
+Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+plot(Bproj.summary$year,Bproj.summary$B.di.CI.med,type="n",ylim=c(0,max(Bproj.summary$B.di.CI.high)),xlab="",ylab="")
+confint(Bproj.summary$year,Bproj.summary$B.di.CI.low,Bproj.summary$B.di.CI.high,col="grey")
+confint(Bproj.summary$year,Bproj.summary$B.dd.CI.low,Bproj.summary$B.dd.CI.high,col="lightblue")
+lines(Bproj.summary$year,Bproj.summary$B.dd.CI.med,lwd=2,col="blue")
+lines(Bproj.summary$year,Bproj.summary$B.dd.CI.low,lwd=1,lty=2,col="blue")
+lines(Bproj.summary$year,Bproj.summary$B.dd.CI.high,lwd=1,lty=2,col="blue")
+lines(Bproj.summary$year,Bproj.summary$B.di.CI.med,lwd=2)
+lines(Bproj.summary$year,Bproj.summary$B.di.CI.low,lwd=1,lty=2,col="black")
+lines(Bproj.summary$year,Bproj.summary$B.di.CI.high,lwd=1,lty=2,col="black")
+lines(Bproj.summary$year,rep(Bref,length(Bproj.summary$year)),lty=2)
+legend("topleft",legend="Mean temperature",bty="n",cex=0.75)
+yaxis2.f(Bproj.summary$year,Bproj.summary$ E.CI.med,ylabel="",type="l",cex=1,,lwd=2,lty=1,col="red")
+
+Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+plot(Bproj.summary.warm$year,Bproj.summary.warm$B.di.CI.med,type="n",ylim=c(0,max(Bproj.summary.warm$B.di.CI.high)),xlab="",ylab="")
+confint(Bproj.summary.warm$year,Bproj.summary.warm$B.di.CI.low,Bproj.summary.warm$B.di.CI.high,col="grey")
+confint(Bproj.summary.warm$year,Bproj.summary.warm$B.dd.CI.low,Bproj.summary.warm$B.dd.CI.high,col="lightblue")
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.dd.CI.med,lwd=2,col="blue")
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.dd.CI.low,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.dd.CI.high,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.di.CI.med,lwd=2)
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.di.CI.low,lwd=1,lty=2,col="black")
+lines(Bproj.summary.warm$year,Bproj.summary.warm$B.di.CI.high,lwd=1,lty=2,col="black")
+lines(Bproj.summary.warm$year,rep(Bref,length(Bproj.summary.warm$year)),lty=2)
+legend("topleft",legend="0.5 °C warmer",bty="n",cex=0.75)
+yaxis2.f(Bproj.summary.warm$year,Bproj.summary.warm$ E.CI.med,ylabel="",type="l",cex=1,,lwd=2,lty=1,col="red")
+
+Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+plot(Bproj.summary.cold$year,Bproj.summary.cold$B.di.CI.med,type="n",ylim=c(0,max(Bproj.summary.cold$B.di.CI.high)),xlab="",ylab="")
+confint(Bproj.summary.cold$year,Bproj.summary.cold$B.di.CI.low,Bproj.summary.cold$B.di.CI.high,col="grey")
+confint(Bproj.summary.cold$year,Bproj.summary.cold$B.dd.CI.low,Bproj.summary.cold$B.dd.CI.high,col="lightblue")
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.dd.CI.med,lwd=2,col="blue")
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.dd.CI.low,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.dd.CI.high,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.di.CI.med,lwd=2)
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.di.CI.low,lwd=1,lty=2,col="black")
+lines(Bproj.summary.cold$year,Bproj.summary.cold$B.di.CI.high,lwd=1,lty=2,col="black")
+lines(Bproj.summary.cold$year,rep(Bref,length(Bproj.summary.cold$year)),lty=2)
+legend("topleft",legend="0.5 °C colder",bty="n",cex=0.75)
+yaxis2.f(Bproj.summary.cold$year,Bproj.summary.cold$ E.CI.med,ylabel="",type="l",cex=1,,lwd=2,lty=1,col="red")
+
+Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+plot(Bproj.summary.var$year,Bproj.summary.var$B.di.CI.med,type="n",ylim=c(0,max(Bproj.summary.var$B.di.CI.high)),xlab="",ylab="")
+confint(Bproj.summary.var$year,Bproj.summary.var$B.di.CI.low,Bproj.summary.var$B.di.CI.high,col="grey")
+confint(Bproj.summary.var$year,Bproj.summary.var$B.dd.CI.low,Bproj.summary.var$B.dd.CI.high,col="lightblue")
+lines(Bproj.summary.var$year,Bproj.summary.var$B.dd.CI.med,lwd=2,col="blue")
+lines(Bproj.summary.var$year,Bproj.summary.var$B.dd.CI.low,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.var$year,Bproj.summary.var$B.dd.CI.high,lwd=1,lty=2,col="blue")
+lines(Bproj.summary.var$year,Bproj.summary.var$B.di.CI.med,lwd=2)
+lines(Bproj.summary.var$year,Bproj.summary.var$B.di.CI.low,lwd=1,lty=2,col="black")
+lines(Bproj.summary.var$year,Bproj.summary.var$B.di.CI.high,lwd=1,lty=2,col="black")
+lines(Bproj.summary.var$year,rep(Bref,length(Bproj.summary.var$year)),lty=2)
+legend("topleft",legend="sd x 1.5",bty="n",cex=0.75)
+yaxis2.f(Bproj.summary.var$year,Bproj.summary.var$ E.CI.med,ylabel="",type="l",cex=1,,lwd=2,lty=1,col="red")
+
+mtext(side=1,outer=F,text="Year",line=4)
+mtext(outer=T,side=2,text="Biomass (t)",line=-1)
+mtext(outer=T,side=4,text="Temperature (°C)",line=1)
+```
+
+
+What is clear from the projections is that a decrease in temperature from the baseline is not good for the stock while an increase in temperature is certainly not good. What is more surprising is that even if mean temperature is the same as the baseline but there is an important increase in variance of the temperature, this is perhaps the worst case for the stock. There is a larger perentage of the P/B density <0 for the increased variance scenario than for any other scenario (Fig. 6).
+___________________________________________
+
+
+The probability that the biomass is greater than the reference level each year of the projection. The horizontal dashed line represents the risk tolerance of not achieving the objective. i.e. For the objective to be met, the biomass line should be above the risk line at the end of the time.frame period specified in the parameters list.
+```{r PgtBrefplot, echo=FALSE,fig.cap="Figure 8: the probability of achieving the objective each year during a 10 year projection of the status quo fishing rate and baseline temperature scenario."}
+    par(mfcol=c(5,1),mar=c(1,4,2,2),omi=c(.6,2.2,.1,2.2))
+
+    matplot(P.null[,1],P.null[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
+    legend("topright",legend=c("Density independent","Density dependent"),lwd=2,col=c("black","blue"),bty="n",cex=0.75)
+    legend("topleft",legend="Null",bty="n",cex=0.75)
+    abline(h=1-risk,lty=2,col="grey")
+    box()
+
+    matplot(P[,1],P[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
+    legend("topleft",legend="Mean temperature",bty="n",cex=0.75)
+    abline(h=1-risk,lty=2,col="grey")
+    box()
+
+    matplot(P.warm[,1],P.warm[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
+    legend("topleft",legend="0.5 °C warmer",bty="n",cex=0.75)
+    abline(h=1-risk,lty=2,col="grey")
+    box()
+
+    matplot(P.cold[,1],P.cold[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
+    legend("topleft",legend="0.5 °C colder",bty="n",cex=0.75)
+    abline(h=1-risk,lty=2,col="grey")
+    box()
+
+    matplot(P.var[,1],P.var[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
+    legend("topleft",legend="sd x 1.5",bty="n",cex=0.75)
+    abline(h=1-risk,lty=2,col="grey")
+    box()
+
+    mtext(side=1,outer=F,text="Year",line=4)
+    mtext(outer=T,side=2,text="Probability of being at or above biomass objective",line=-1)
+```
+
+
+The maximum exploitation rate that will achieve the objective in the specified time period given the E scenario projected.
+
+
+```{r Fvalsbase, echo=FALSE,fig.cap="Figure 9: The maximum exploitation rate that would allow the stock to achieve the objective in the specified period of time at the specified risk level for density independent and density dependent models and the baseline temperature scenario."}
+   par(mfcol=c(5,1),mar=c(1,4,2,2),omi=c(.6,2.2,.1,2.2))
+
+    matplot(PofF.null[,1],PofF.null[,-1],xlab="", ylab="" ,ylim=c(0,1),
+    type="l",lwd=3,xaxs="i",yaxs="i",lty=1,col=c("black","blue"))
+    legend("topright",legend=c("Density independent","Density dependent"),lwd=2,col=c("black","blue"),bty="n",cex=0.75)
+    legend("topleft",legend="Null",bty="n",cex=0.75)
+    di.intersection= predict(gam(f~s(P.di),data=PofF.null),newdata=data.frame(P.di=1-risk))
+    dd.intersection= predict(gam(f~s(P.dd),data=PofF.null),newdata=data.frame(P.dd=1-risk))
+    rect(0,0,di.intersection,1-risk,lty=2,border="darkgrey")
+    rect(0,0,dd.intersection,1-risk,lty=2,border="darkgrey")
+    box()
+
+    matplot(PofF[,1],PofF[,-1],xlab="", ylab="" ,ylim=c(0,1),
+    type="l",lwd=3,xaxs="i",yaxs="i",lty=1,col=c("black","blue"))
+    legend("topleft",legend="Mean temperature",bty="n",cex=0.75)
+    di.intersection= predict(gam(f~s(P.di),data=PofF),newdata=data.frame(P.di=1-risk))
+    dd.intersection= predict(gam(f~s(P.dd),data=PofF),newdata=data.frame(P.dd=1-risk))
+    rect(0,0,di.intersection,1-risk,lty=2,border="darkgrey")
+    rect(0,0,dd.intersection,1-risk,lty=2,border="darkgrey")
+    box()
+
+    # warm
+    matplot(PofF.warm[,1],PofF.warm[,-1],xlab="", ylab= "",ylim=c(0,1),
+    type="l",lwd=3,xaxs="i",yaxs="i",lty=1,col=c("black","blue"))
+    legend("topleft",legend="0.5 °C warmer",bty="n",cex=0.75)
+    di.intersection= predict(gam(f~s(P.di),data=PofF.warm),newdata=data.frame(P.di=1-risk))
+    dd.intersection= predict(gam(f~s(P.dd),data=PofF.warm),newdata=data.frame(P.dd=1-risk))
+    rect(0,0,di.intersection,1-risk,lty=2,border="darkgrey")
+    rect(0,0,dd.intersection,1-risk,lty=2,border="darkgrey")
+    box()
+
+    # cold
+    matplot(PofF.cold[,1],PofF.cold[,-1],xlab="", ylab= "",ylim=c(0,1),
+    type="l",lwd=3,xaxs="i",yaxs="i",lty=1,col=c("black","blue"))
+    legend("topleft",legend="0.5 °C colder",bty="n",cex=0.75)
+    di.intersection= predict(gam(f~s(P.di),data=PofF.cold),newdata=data.frame(P.di=1-risk))
+    dd.intersection= predict(gam(f~s(P.dd),data=PofF.cold),newdata=data.frame(P.dd=1-risk))
+    rect(0,0,di.intersection,1-risk,lty=2,border="darkgrey")
+    rect(0,0,dd.intersection,1-risk,lty=2,border="darkgrey")
+    box()
+
+    # increased variance
+    matplot(PofF.var[,1],PofF.var[,-1],xlab="", ylab= "",ylim=c(0,1),
+    type="l",lwd=3,xaxs="i",yaxs="i",lty=1,col=c("black","blue"))
+    legend("topleft",legend="sd x 1.5",bty="n",cex=0.75)
+    di.intersection= predict(gam(f~s(P.di),data=PofF.var),newdata=data.frame(P.di=1-risk))
+    dd.intersection= predict(gam(f~s(P.dd),data=PofF.var),newdata=data.frame(P.dd=1-risk))
+    rect(0,0,di.intersection,1-risk,lty=2,border="darkgrey")
+    rect(0,0,dd.intersection,1-risk,lty=2,border="darkgrey")
+    box()
+
+    mtext(side=1,outer=F,text="Exploitation rate",line=4)
+    mtext(outer=T,side=2,text="Probability of being at or above biomass objective in 10 years",line=-1)
+```
+
+
+
+```{r contplot.di, echo=FALSE,fig.cap="Figure 10: a contour plot showing the probability of achieveing the objective in the specified time period under different exploitatin rates and future temperature scenarios for the density independent model. The actual time series of temperature an exploitation rate is shown as the blue line overlay."}
+    CCF.contour=interp(x=CCF.raw$E.med,y=CCF.raw$Fval,z=CCF.raw$P.di)
+    contour(CCF.contour,xlab="Median temperature (°C)",ylab="Exploitation rate",xaxs="i",yaxs="i")
+    risk.equi.exp.rate.di= contourLines(CCF.contour$x,CCF.contour$y,CCF.contour$z,nlevels=1,levels=1-risk)
+    confint(risk.equi.exp.rate.di[[1]]$x,risk.equi.exp.rate.di[[1]]$y*0,risk.equi.exp.rate.di[[1]]$y,col=rgb(0, 1, 0,0.5))
+    lines(PB$E,PB$F.rel,col="slateblue",lwd=1)
+    points(PB$E,PB$F.rel,col="slateblue",pch=20)
+    year.endpoints= match(range(PB$Year),PB$Year)
+    points(PB$E[year.endpoints],PB$F.rel[year.endpoints],pch=22,cex=3,bg="white",col="slateblue")
+    text(PB$E[year.endpoints],PB$F.rel[year.endpoints],PB$Year[year.endpoints],cex=.5)
+```
+
+## Climate conditioning factors and deriving risk based advice
+
+You can determine climate conditioning buffer factors from the contour plot (Fig 10) for the particular objective. So if the acceptable risk level is 50% (a target) then one can follow the 0.5 contour to see what the maximum exploitation rate could be for various future temperatures. The buffering factor would be the ratio of the long term mean temperature exploitation on the 50% risk contour with that at the proposed future temperature. The buffering factor is the incremental risk buffer. If one were interested in incremental risk of status quo fishing then they would plot the exploitation rate of long term mean temperature and status quo exploitation and determine on what risk contour it landed. Then do the same with the hypothesised future median temperature and status quo exploitation rate. The difference between the two risk levels is the incremental risk.
+
+Incremental risk of assuming turbot production is affected by climate change vs not being affected can also be calculated by looking at how much the exploitation rate would need to change under one of the climate scenarios vs the null model. This incremental risk is the risk of assuming climate change is not important given your objective and future climate scenario.
+
+The contour plot and climate conditioning factors essentially show the dependence of reference points on the environmental conditions. Ideally a reference point is relatively invariant to external factors but the reality is that none are. The domed contours over the temperature dimension esssentially show degree of variance caused by change in the environment and climate change in what are essentially dynamic reference points.
+
+
+# Acknowledgements
+
+The DFO peer review group provided considerable feedback on these simulations. Mariano Koen-Alonso suggested that density dependence is an important process to consider for these simulations.
+
+Johanne Gauthier provided the turbot data and several temperature time series relevant to the turbot survey catches. Peter Galbraith provided several temperature and salinity E variables available in the turbot data object. Denis Gilbert provided the oxygen concentration and saturation levels for the deep water (>295 m) of the St Lawrence estuary.
+
+
+# References
+
+Galbraith, P.S., Chassé, J., Nicot, P., Caverhill, C., Gilbert, D.,  Pettigrew, B., Lefaivre, D., Brickman, D., Devine, L., and Lafleur, C. 2015. Physical Oceanographic Conditions in the Gulf of St. Lawrence in 2014. DFO Can. Sci. Advis. Sec. Res. Doc. 2015/032. v + 82 p http://www.dfo-mpo.gc.ca/csas-sccs/Publications/ResDocs-DocRech/2015/2015_032-eng.html
+
+Gilbert, D., B. Sundby, C. Gobeil, A. Mucci, G.-H. Tremblay 2005. A seventy-two-year record of diminishing deep-water oxygen in the St. Lawrence estuary: The northwest Atlantic connection. Limnology and Oceanography. 50: 1654-1666.
+
+DFO. 2018. Assessment of the Greenland Halibut stock in the Gulf of St. Lawrence (4RST) in 2017. DFO Can. Sci. Advis. Sec. Sci. Advis. Rep. 2018/035. http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf
