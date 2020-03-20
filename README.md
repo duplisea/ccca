@@ -1,19 +1,31 @@
-### CCCA model background
+[![Analytics](https://ga-beacon.appspot.com/UA-52037602-5/welcome-page)](https://github.com/igrigorik/ga-beacon)
+
+CCCA model background
+---------------------
 
 The goal of the ccca package is to generate climate change conditioned
 advice for fisheries. Based on data inputs of a survey index time
 series, a catch time series and a climate change variable thought to
-affect stock production, a simple model is derived. This model is
+affect stock production, a simple model is derived. The approach is
+emppirical in that it takes advantage of an empirically observed
+relationship between a stock’s surplus production and environmental or
+ecological variable even if the specific mechanism cannot be that well
+articulated. That is, there should be a hypothesis relating the E
+variables to surplus production but not necessarily an experimental body
+of evidence that supports it. By relaxing the necessary basis for
+evidence and casting this in a risk based framework, we are able to
+provide climate conditioned advice more immediately. This model is
 projected given climate scenarios that you provide using a built in
 function. This is done by fitting a normal distribution to your climate
 variable time series and then resamples it for a specified number of
 years into the future and for the number of Monte Carlo projection runs
-you want. You can shift the mean of this distribution to reflect a new
-stable state for the climate variable. The variance of this distribution
-can also be altered to reflect the future climate scenario. You can also
-easily develop your own scenario based on a different distribution,
-non-parametric resampling of the climate series or say a directional
-change in the climate variable, i.e. not a new stable state.
+you want. You can shift the mean of this distribution or sample its
+quantiles to to simulate climate change. The variance of this
+distribution can also be altered to reflect the future climate scenario
+in terms of variance and not just mean. You can also easily develop your
+own scenario based on a different distribution, non-parametric
+resampling of the climate series or say a directional change in the
+climate variable, i.e. not a new stable state.
 
 Various plotting functions are provided. You can find risk equivalent F
 strategies for a climate change scenario versus your baseline scenario.
@@ -24,7 +36,15 @@ change induced productivty changes in the tock and a risk equivalent
 fishing strategy.
 
 The model was developed considering both density dependent and
-independent stock dynamics.
+independent stock dynamics which are not very different for commerically
+exploited fish stocks.
+
+### Development status
+
+The is work that is presently under consideration for primary
+literature. We please ask that you not try to publish other work based
+on this until the primary publication is out (it will be cited below).
+We are happy to take questions, comments and collaborate.
 
 The case study
 --------------
@@ -283,8 +303,8 @@ Acknowledgements
 ================
 
 The DFO peer review group provided considerable feedback on these
-simulations. Mariano Koen-Alonso suggested that density dependence is an
-important process to consider for these simulations.
+simulations. Mariano Koen-Alonso suggested that density dependence
+should be considered in these simulations.
 
 Johanne Gauthier provided the turbot data and several temperature time
 series relevant to the turbot survey catches. Peter Galbraith provided
@@ -296,6 +316,17 @@ estuary.
 References
 ==========
 
+DFO. 2018. Assessment of the Greenland Halibut stock in the Gulf of
+St. Lawrence (4RST) in 2017. DFO Can. Sci. Advis. Sec. Sci. Advis.
+Rep. 2018/035.
+<a href="http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf" class="uri">http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf</a>
+
+Duplisea, D.E., Roux, M-J., Hunter, K.L. and Rice, J. 2019. Resource
+management under climate change: a risk-based strategy to develop
+climate-informed science advice. Can. Sci. Advis. Sec. Res. Doc.
+2019/044.
+<a href="http://www.dfo-mpo.gc.ca/csas-sccs/Publications/ResDocs-DocRech/2019/2019_044-eng.html" class="uri">http://www.dfo-mpo.gc.ca/csas-sccs/Publications/ResDocs-DocRech/2019/2019_044-eng.html</a>
+
 Galbraith, P.S., Chassé, J., Nicot, P., Caverhill, C., Gilbert, D.,
 Pettigrew, B., Lefaivre, D., Brickman, D., Devine, L., and Lafleur, C.
 2015. Physical Oceanographic Conditions in the Gulf of St. Lawrence in
@@ -306,8 +337,3 @@ Gilbert, D., B. Sundby, C. Gobeil, A. Mucci, G.-H. Tremblay 2005. A
 seventy-two-year record of diminishing deep-water oxygen in the
 St. Lawrence estuary: The northwest Atlantic connection. Limnology and
 Oceanography. 50: 1654-1666.
-
-DFO. 2018. Assessment of the Greenland Halibut stock in the Gulf of
-St. Lawrence (4RST) in 2017. DFO Can. Sci. Advis. Sec. Sci. Advis.
-Rep. 2018/035.
-<a href="http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf" class="uri">http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf</a>

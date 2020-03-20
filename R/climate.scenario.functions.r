@@ -42,7 +42,7 @@ Egamma.fit.f= function(E){
 #' @examples
 #' lnorm.fit.f(rlnorm(1000,2.56,0.055))
 lnorm.fit.f= function(E){
-  lnf= fitdistrx(E,densfun="lognormal")
+  lnf= fitdistr(x=E,densfun="lognormal")
   lnf
 }
 

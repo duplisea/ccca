@@ -7,13 +7,14 @@
 #'
 #' @param PB the data and model fit coming from applying the PB model (PB.f)
 #' @param E the time series to overlay and colour code Kobe years
+#' @param col1 the colour at lowest value
+#' @param col2 the colour at the highest value
 #' @param ... par options for plot
 #' @keywords Kobe, reference point, Bmsy, environment
 #' @export
 #' @examples
 #' Kobe.f(PB=PB,E=PB$E)
-Kobe.f= function(PB,E,...){
-  #####PUT A COLOUR SCALE ON THE PLOT TO SHOW HOW TEMPERATURE CHANGES
+Kobe.f= function(PB, E, col1="blue", col2="red", ...){
 
 	Year= PB$Year
 	F.rel= PB$F.rel
@@ -25,7 +26,7 @@ Kobe.f= function(PB,E,...){
 
   plot(B.kobe,F.kobe,type="b",pch="    ",xlab=expression("B/B"["base"]),ylab=expression("F/F"["base"]),...)
   E.categ= floor(E*4)/4 #quarter degree C categories
-  tempcol=colorRampPalette(c("blue", "red"))(length(E.kobe))
+  tempcol=colorRampPalette(c(col1, col2))(length(E.kobe))
   temperaturecolours= tempcol[order(E.categ)]
   last.year= length(F.kobe)
   points(B.kobe,F.kobe,pch=21,bg=temperaturecolours,col=temperaturecolours,cex=1)
@@ -56,8 +57,8 @@ colramp.legend= function(col1="red", col2="blue", ncol, xleft, ybottom, xright, 
   legend_image <- as.raster(matrix(tempcol, ncol=1))
   rasterImage(legend_image, xleft=xleft, ybottom=ybottom, xright=xright, ytop=ytop)
   rasterImage(legend_image, 12,2,13,8)
-  text(xright*1.02,ytop,labels=round(max(PB$E),1),cex=0.8)
-  text(xright*1.02,ybottom,labels=round(min(PB$E),1),cex=0.8)
+  text(xright*1.02,ytop,labels=round(max(PB$E,na.rm=T),1),cex=0.8)
+  text(xright*1.02,ybottom,labels=round(min(PB$E,na.rm=T),1),cex=0.8)
 }
 
 

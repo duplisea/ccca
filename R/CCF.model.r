@@ -83,7 +83,7 @@ F.strategy= function(PB, years, moratorium=F){
 #' Bproj= projection.f(PB=PB, Bstart.mult=Bstart.mult, PBproj=PBproj, Fstrat, K=K, theta=1)
 projection.f= function(PB, Bstart.mult, PBproj, Fstrat, K, theta=1){
   if(theta<=0) stop('theta must be >0 and probably should be <=1')
-  K= K*max(PB$Index.q)
+  K= K*max(PB$Index.q, na.rm=T)
   N= ncol(PBproj)
   proj.years= nrow(PBproj)
   proj.di= matrix(ncol=N,nrow=proj.years)
@@ -114,7 +114,7 @@ projection.f= function(PB, Bstart.mult, PBproj, Fstrat, K, theta=1){
 #' @keywords projection, reference point, rank, probability
 #' @export
 rankprob.f= function(proj.out, PB, ref.pt){
-  Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+  Bref= Bref.f(PB=PB, ref.pt.multiplier=ref.pt)
   obj.prob.di= cbind(rep(Bref,nrow(proj.out$proj.di)),proj.out$proj.di)
   obj.prob.dd= cbind(rep(Bref,nrow(proj.out$proj.dd)),proj.out$proj.dd)
   P.di= vector(length=nrow(proj.out$proj.di))
@@ -145,7 +145,7 @@ rankprob.f= function(proj.out, PB, ref.pt){
 Fseq.f= function(PB, PBproj, Fseq, time.frame, N, K){
   keep.di= matrix(ncol=N,nrow=length(Fseq))
   keep.dd= keep.di
-  Kabs= K*max(PB$Index.q)
+  Kabs= K*max(PB$Index.q, na.rm=T)
   fcounter=1
   for(f in Fseq){
     for(MC in 1:N) {
@@ -175,7 +175,7 @@ Fseq.f= function(PB, PBproj, Fseq, time.frame, N, K){
 #' @examples
 #' PofF.f(PB,Fout)
 PofF.f=function(PB,Fprob,ref.pt){
-  Bref= ref.pt*sum(PB$Index.q * PB$refererence.years)/sum(PB$refererence.years)
+  Bref= Bref.f(PB=PB, ref.pt.multiplier=ref.pt)
   obj.prob.di= cbind(rep(Bref,nrow(Fprob$f.di)),Fprob$f.di)
   obj.prob.dd= cbind(rep(Bref,nrow(Fprob$f.dd)),Fprob$f.dd)
   P.di= vector(length=nrow(obj.prob.di))
@@ -223,4 +223,15 @@ P.R.for.EF.f= function(E.CCF, PB.CCF, Fs, PB, ref.pt, Bstart.mult, K, theta=1){
 	}
 	names(Pend)= c("Fval","E.low","E.med","E.high","year","P.di","P.dd")
 	Pend
+}
+
+
+#' Calculate reference point biomass value based on reference years and multiplier
+#'
+#' @param PB the data and model fit coming from applying the PB model (PB.f)
+#' @param ref.pt.multiplier there reference point multiplier as a proportion of the reference period
+#' @keywords reference point
+Bref.f= function(PB, ref.pt.multiplier){
+  Bref= ref.pt.multiplier*sum(PB$Index.q * PB$refererence.years,na.rm=T)/sum(PB$refererence.years,na.rm=T)
+  Bref
 }

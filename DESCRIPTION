@@ -7,7 +7,7 @@ Maintainer: Daniel Duplisea <daniel.duplisea@dfo-mpo.gc.ca>
 Description: Develops simple density dependent and independent models from a time series of a survey index, 
   catch and a climate variable. Projects impact of climate change and suggests risk equivalent fisheries 
   advice under the new climate regime.
-License: 2019 Canadian Crown Copyright
+License: GPL3
 Encoding: UTF-8
 LazyData: true
 Depends:
