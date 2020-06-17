@@ -369,7 +369,7 @@ The probability that the biomass is greater than the reference level each year o
     matplot(P.warm[,1],P.warm[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
     legend("topleft",legend="0.5 °C warmer",bty="n",cex=0.75)
     abline(h=1-risk,lty=2,col="grey")
-    box()
+      box()
 
     matplot(P.cold[,1],P.cold[,-1],type='l',xlab="",ylab="",lwd=3,ylim=c(0,1),lty=1,col=c("black","blue"))
     legend("topleft",legend="0.5 °C colder",bty="n",cex=0.75)
