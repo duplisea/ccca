@@ -4,8 +4,12 @@
 \alias{map.inset.f}
 \title{An inset map for the main map function}
 \usage{
-map.inset.f(longs = c(-71, -50), lats = c(43, 52.25),
-  land.colour = "sienna3", sea.colour = "lightblue")
+map.inset.f(
+  longs = c(-71, -50),
+  lats = c(43, 52.25),
+  land.colour = "sienna3",
+  sea.colour = "lightblue"
+)
 }
 \description{
 An inset map for the main map function

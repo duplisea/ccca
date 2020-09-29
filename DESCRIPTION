@@ -12,10 +12,11 @@ Encoding: UTF-8
 LazyData: true
 Depends:
     mgcv,
+    scam,
     plotrix,
     MASS,
     akima,
     PBSmapping
 Suggests:
     plotly
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0

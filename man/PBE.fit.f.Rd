@@ -9,18 +9,22 @@ PBE.fit.f(PB, model.type, knots, poly.degree)
 \arguments{
 \item{PB}{the data and model fit coming from applying the PB model (PB.f)}
 
-\item{model.type}{the kind of model to fit ("poly", "gam", "gam.adaptive","avg")}
+\item{model.type}{the kind of model to fit ("poly", "gam", "gam.adaptive","avg","mpi","mpd","cx","cv","micx","micv","mdcx","mdcv"}
 
 \item{knots}{the number of knots for adaptive GAM}
 
 \item{poly.degree}{the degree of the polynomial to fit}
 }
 \description{
-The various model fits: polynomial "poly", GAM "gam", adaptive GAM "gam.adaptive"
+The various model fits: polynomial "poly", GAM "gam", adaptive GAM "gam.adaptive", various scam fits
     and resamples from the PB values "avg" can be chosen. avg just fits a linear model with slope = 0
     and then resamples the residuals which is effectively the same as just sampling the P/B values directly,
     i.e. it does not force a relationship between P/B and E and therefore the future is just a resampling
-    of the past.
+    of the past. scam (shape constrained additive models) fits force certain characteristics in the shape such as monotonicity,
+    convex, concave, increasing or decreasing.
+}
+\seealso{
+[mgcv::gam()], [mgcv::smooth.terms], [mgcv::scam()], [mgcv::shape.constrained.smooth.terms], [lm()]
 }
 \keyword{E}
 \keyword{P/B,}

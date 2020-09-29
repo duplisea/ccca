@@ -4,8 +4,12 @@
 \alias{map.f}
 \title{Wrapper for the PBSmapping plotMap function}
 \usage{
-map.f(longs = c(-74, -50), lats = c(43, 52.25),
-  land.colour = "sienna3", sea.colour = "lightblue")
+map.f(
+  longs = c(-74, -50),
+  lats = c(43, 52.25),
+  land.colour = "sienna3",
+  sea.colour = "lightblue"
+)
 }
 \description{
 Wrapper for the PBSmapping plotMap function

@@ -4,7 +4,9 @@
 \name{ncod}
 \alias{ncod}
 \title{Northern cod data}
-\format{A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.}
+\format{
+A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.
+}
 \source{
 Regular, P. 2019. Northern cod assessment res doc and dash board. CSAS in press
 

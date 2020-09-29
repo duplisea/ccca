@@ -4,12 +4,18 @@
 \alias{Kobe.f}
 \title{Make Kobe plots from simple data with overlay of another time series}
 \usage{
-Kobe.f(PB, E, ...)
+Kobe.f(PB, E, Bref.multiplier = 1, col1 = "blue", col2 = "red", ...)
 }
 \arguments{
 \item{PB}{the data and model fit coming from applying the PB model (PB.f)}
 
 \item{E}{the time series to overlay and colour code Kobe years}
+
+\item{Bref.multiplier}{a multiplier of the mean B in the reference period to adjust it to a specific reference point value}
+
+\item{col1}{the colour at lowest value}
+
+\item{col2}{the colour at the highest value}
 
 \item{...}{par options for plot}
 }

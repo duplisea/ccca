@@ -28,19 +28,20 @@ PB.f= function(dataset, ref.years, q){
 	PB
 }
 
-
 #' Fit a PB vs E relationship
 #'
 #' @param PB the data and model fit coming from applying the PB model (PB.f)
-#' @param model.type the kind of model to fit ("poly", "gam", "gam.adaptive","avg")
+#' @param model.type the kind of model to fit ("poly", "gam", "gam.adaptive","avg","mpi","mpd","cx","cv","micx","micv","mdcx","mdcv"
 #' @param knots the number of knots for adaptive GAM
 #' @param poly.degree the degree of the polynomial to fit
 #' @keywords trend line, P/B, E
-#' @description The various model fits: polynomial "poly", GAM "gam", adaptive GAM "gam.adaptive"
+#' @seealso [mgcv::gam()], [mgcv::smooth.terms], [mgcv::scam()], [mgcv::shape.constrained.smooth.terms], [lm()]
+#' @description The various model fits: polynomial "poly", GAM "gam", adaptive GAM "gam.adaptive", various scam fits
 #'     and resamples from the PB values "avg" can be chosen. avg just fits a linear model with slope = 0
 #'     and then resamples the residuals which is effectively the same as just sampling the P/B values directly,
 #'     i.e. it does not force a relationship between P/B and E and therefore the future is just a resampling
-#'     of the past.
+#'     of the past. scam (shape constrained additive models) fits force certain characteristics in the shape such as monotonicity,
+#'     convex, concave, increasing or decreasing.
 #' @export
 PBE.fit.f= function(PB,model.type,knots,poly.degree){
   PB=na.omit(PB)
@@ -48,6 +49,14 @@ PBE.fit.f= function(PB,model.type,knots,poly.degree){
     poly= lm(PB~poly(E,degree=poly.degree),data= PB),
     gam= gam(PB~s(E), data=PB),
     gam.adaptive= gam(PB~s(E,k=knots,bs="ad"), data=PB),
+    mpi= scam(PB~s(E, bs="mpi"),data=PB),
+    mpd= scam(PB~s(E, bs="mpd"),data=PB),
+    cx= scam(PB~s(E, bs="cx"),data=PB),
+    cv= scam(PB~s(E, bs="cv"),data=PB),
+    micx= scam(PB~s(E, bs="micx"),data=PB),
+    micv= scam(PB~s(E, bs="micv"),data=PB),
+    mdcx= scam(PB~s(E, bs="mdcx"),data=PB),
+    mdcv= scam(PB~s(E, bs="mdcv"),data=PB),
     avg= lm(PB - 0*E ~ 1, data=PB))
 }
 

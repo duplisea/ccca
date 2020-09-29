@@ -4,8 +4,7 @@
 \alias{getBathy}
 \title{Get bathymetric data and plot on the map}
 \usage{
-getBathy(bathyFname, isob = c(100, 200, 500, 800, 1200, 2400),
-  minVerts = 3)
+getBathy(bathyFname, isob = c(100, 200, 500, 800, 1200, 2400), minVerts = 3)
 }
 \description{
 Get bathymetric data and plot on the map

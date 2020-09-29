@@ -7,6 +7,7 @@
 #'
 #' @param PB the data and model fit coming from applying the PB model (PB.f)
 #' @param E the time series to overlay and colour code Kobe years
+#' @param Bref.multiplier a multiplier of the mean B in the reference period to adjust it to a specific reference point value
 #' @param col1 the colour at lowest value
 #' @param col2 the colour at the highest value
 #' @param ... par options for plot
@@ -14,7 +15,7 @@
 #' @export
 #' @examples
 #' Kobe.f(PB=PB,E=PB$E)
-Kobe.f= function(PB, E, col1="blue", col2="red", ...){
+Kobe.f= function(PB, E, Bref.multiplier=1, col1="blue", col2="red", ...){
 
 	Year= PB$Year
 	F.rel= PB$F.rel
@@ -22,7 +23,7 @@ Kobe.f= function(PB, E, col1="blue", col2="red", ...){
 	base= PB$refererence.years==1
 	E.kobe= E/mean(E[base])
 	F.kobe= F.rel/mean(F.rel[base])
-	B.kobe= Index.q/mean(Index.q[base])
+	B.kobe= Index.q/(mean(Index.q[base])*Bref.multiplier)
 
   plot(B.kobe,F.kobe,type="b",pch="    ",xlab=expression("B/B"["base"]),ylab=expression("F/F"["base"]),...)
   E.categ= floor(E*4)/4 #quarter degree C categories
@@ -36,6 +37,8 @@ Kobe.f= function(PB, E, col1="blue", col2="red", ...){
   text(B.kobe[last.year],F.kobe[last.year],PB$Year[last.year],col="white",cex=0.55,font=2)
   abline(h=1,col="grey")
   abline(v=1,col="grey")
+  legend("topright",bty="n",cex=0.7,legend=c(paste0("Bbase=",round(mean(Index.q[base])*Bref.multiplier)),
+                                     paste0("Fbase=",round(mean(F.rel[base]),3))))
 }
 
 #' A colour ramp legend for the E variable in a Kobe plot

@@ -4,7 +4,9 @@
 \name{ShrimpAnticosti}
 \alias{ShrimpAnticosti}
 \title{Anticosti Shrimp data}
-\format{A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.}
+\format{
+A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.
+}
 \source{
 Bourdages, H. and Marquis, M.C. 2019. Assessment of northern shrimp stocks in the Estuary and Gulf of St. Lawrence in 2017: commercial fishery data. DFO Can. Sci. Advis. Sec. Res. Doc. 2018/056. iv + 99 p.
 

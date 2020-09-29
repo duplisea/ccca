@@ -4,7 +4,9 @@
 \name{fishing.area3}
 \alias{fishing.area3}
 \title{Fishing area 3 - North Anticosti}
-\format{A dataframe with four columns named. To be used by PBSmapping}
+\format{
+A dataframe with four columns named. To be used by PBSmapping
+}
 \usage{
 data(fishing.area3)
 }

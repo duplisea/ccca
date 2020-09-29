@@ -2,13 +2,21 @@
 % Please edit documentation in R/plotting.data.ccf.functions.r
 \name{colramp.legend}
 \alias{colramp.legend}
-\title{Make Kobe plots from simple data with overlay of another time series}
+\title{A colour ramp legend for the E variable in a Kobe plot}
 \usage{
-colramp.legend(col1 = "red", col2 = "blue", ncol, xleft, ybottom,
-  xright, ytop, ...)
+colramp.legend(
+  col1 = "red",
+  col2 = "blue",
+  ncol,
+  xleft,
+  ybottom,
+  xright,
+  ytop,
+  ...
+)
 }
 \arguments{
-\item{col1}{the top colour of the colour ramp}
+\item{col1}{the bottom colour of the colour ramp}
 
 \item{ncol}{the number of colours in the ramp (typically length(E))}
 
@@ -21,11 +29,9 @@ colramp.legend(col1 = "red", col2 = "blue", ncol, xleft, ybottom,
 \item{ytop}{a vector (or scalar) of top y positions}
 
 \item{...}{par options for plot}
-
-\item{col1}{the bottom colour of the colour ramp}
 }
 \description{
-Make Kobe plots from simple data with overlay of another time series
+A colour ramp legend for the E variable in a Kobe plot
 }
 \examples{
 colramp.legend(col1="red", col2="blue", ncol=length(PB$E), 2.5, 3.5, 2.7, 4.5)

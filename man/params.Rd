@@ -4,7 +4,9 @@
 \name{params}
 \alias{params}
 \title{Projection parameters}
-\format{A list with 19 elements}
+\format{
+A list with 19 elements
+}
 \usage{
 data(params)
 }

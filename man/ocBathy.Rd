@@ -4,7 +4,9 @@
 \name{ocBathy}
 \alias{ocBathy}
 \title{Eastern Canada Bathymetry}
-\format{A list}
+\format{
+A list
+}
 \usage{
 data(ecan.bathy)
 }

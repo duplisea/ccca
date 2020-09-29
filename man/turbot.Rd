@@ -4,7 +4,9 @@
 \name{turbot}
 \alias{turbot}
 \title{Turbot data}
-\format{A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.}
+\format{
+A dataframe with four essential columns named (Year, Index, Catch, E) and many other E variable columns.
+}
 \source{
 DFO. 2018. Assessment of the Greenland Halibut stock in the Gulf of St. Lawrence (4RST) in 2017. DFO Can. Sci. Advis. Sec. Sci. Advis. Rep. 2018/035. http://waves-vagues.dfo-mpo.gc.ca/Library/40714007.pdf
 
