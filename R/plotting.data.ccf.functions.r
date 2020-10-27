@@ -23,7 +23,7 @@ Kobe.f= function(PB, E, Bref.multiplier=1, col1="blue", col2="red", ...){
 	base= PB$refererence.years==1
 	E.kobe= E/mean(E[base])
 	F.kobe= F.rel/mean(F.rel[base])
-	B.kobe= Index.q/(mean(Index.q[base])*Bref.multiplier)
+	B.kobe= Index.q*Bref.multiplier/mean(Index.q[base])
 
   plot(B.kobe,F.kobe,type="b",pch="    ",xlab=expression("B/B"["base"]),ylab=expression("F/F"["base"]),...)
   E.categ= floor(E*4)/4 #quarter degree C categories
@@ -37,8 +37,8 @@ Kobe.f= function(PB, E, Bref.multiplier=1, col1="blue", col2="red", ...){
   text(B.kobe[last.year],F.kobe[last.year],PB$Year[last.year],col="white",cex=0.55,font=2)
   abline(h=1,col="grey")
   abline(v=1,col="grey")
-  legend("topright",bty="n",cex=0.7,legend=c(paste0("Bbase=",round(mean(Index.q[base])*Bref.multiplier)),
-                                     paste0("Fbase=",round(mean(F.rel[base]),3))))
+  legend("topright",bty="n",cex=0.7,legend=c(paste0("Bbase=",round(B.kobe),
+                                     paste0("Fbase=",round(F.kobe,3)))))
 }
 
 #' A colour ramp legend for the E variable in a Kobe plot
