@@ -151,7 +151,7 @@ rankprob.f= function(proj.out, PB, ref.pt){
 #' @export
 #' @examples
 #' Fout= Fseq.f(PB,Fseq=seq(0,.2,length=100),time.frame=time.frame, N=N, K=K)
-Fseq.f= function(PB, PBproj, Fseq, time.frame, N, K){
+Fseq.f= function(PB, PBproj, Fseq, time.frame, N, K , Bstart.mult){
   keep.di= matrix(ncol=N,nrow=length(Fseq))
   keep.dd= keep.di
   Kabs= K*max(PB$Index.q, na.rm=T)
