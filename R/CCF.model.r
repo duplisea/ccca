@@ -12,11 +12,12 @@
 #' think it is representative of Blim, Bmsy, Busr or whatever. Just beware that reference point multipliers will be
 #' based on it in other areas of the simulation. So if it is a Bmsy proxy then the Blim ref.pt input logically might be about 0.4.
 #' @param q the survey catchability
-#' @keywords P/B, carrying capacity, environmental variable, survey catcahbility, commercial catch
+#' @param keep a vector of column names/positions to keep in the output dataframe. Useful if you have an E2 for a custom function.
+#' @keywords P/B, carrying capacity, environmental variable, survey catchability, commercial catch
 #' @export
 #' @examples
 #' PB= PB.f(dataset,1)
-PB.f= function(dataset, ref.years, q){
+PB.f= function(dataset, ref.years, q, keep = NULL){
   ref.pos= match(ref.years, dataset$Year)
   reference.years= dataset$Index*0
   reference.years[ref.pos]=1
@@ -25,15 +26,18 @@ PB.f= function(dataset, ref.years, q){
 	PB=(diff(Index.q)+dataset$Catch[-length(dataset$Catch)])/Index.q[-length(Index.q)]
 	PB= data.frame(Year=dataset$Year, Index.q= Index.q, Catch=dataset$Catch, F.rel=F.rel,
 		E=dataset$E, PB= c(PB,NA),refererence.years= reference.years)
+	if(!is.null(keep)) PB <- cbind(PB , dataset[,keep])
 	PB
 }
 
 #' Fit a PB vs E relationship
 #'
 #' @param PB the data and model fit coming from applying the PB model (PB.f)
-#' @param model.type the kind of model to fit ("poly", "gam", "gam.adaptive","avg","mpi","mpd","cx","cv","micx","micv","mdcx","mdcv"
+#' @param model.type the kind of model to fit ("poly", "gam", "gam.adaptive","avg","mpi","mpd","cx","cv","micx","micv","mdcx","mdcv","custom")
 #' @param knots the number of knots for adaptive GAM
 #' @param poly.degree the degree of the polynomial to fit
+#' @param custom.type the type of model (ie. gam , scam , or lm) to use in custom model
+#' @param formula the formula to use in custom model
 #' @keywords trend line, P/B, E
 #' @seealso [mgcv::gam()], [mgcv::smooth.terms], [mgcv::scam()], [mgcv::shape.constrained.smooth.terms], [lm()]
 #' @description The various model fits: polynomial "poly", GAM "gam", adaptive GAM "gam.adaptive", various scam fits
@@ -43,21 +47,23 @@ PB.f= function(dataset, ref.years, q){
 #'     of the past. scam (shape constrained additive models) fits force certain characteristics in the shape such as monotonicity,
 #'     convex, concave, increasing or decreasing.
 #' @export
-PBE.fit.f= function(PB,model.type,knots,poly.degree){
+PBE.fit.f= function(PB , model.type, knots = NULL , poly.degree = NULL , custom.type = NULL , formula = NULL ){
   PB=na.omit(PB)
   switch(model.type,
-    poly= lm(PB~poly(E,degree=poly.degree),data= PB),
-    gam= gam(PB~s(E), data=PB),
-    gam.adaptive= gam(PB~s(E,k=knots,bs="ad"), data=PB),
-    mpi= scam(PB~s(E, bs="mpi"),data=PB),
-    mpd= scam(PB~s(E, bs="mpd"),data=PB),
-    cx= scam(PB~s(E, bs="cx"),data=PB),
-    cv= scam(PB~s(E, bs="cv"),data=PB),
-    micx= scam(PB~s(E, bs="micx"),data=PB),
-    micv= scam(PB~s(E, bs="micv"),data=PB),
-    mdcx= scam(PB~s(E, bs="mdcx"),data=PB),
-    mdcv= scam(PB~s(E, bs="mdcv"),data=PB),
-    avg= lm(PB - 0*E ~ 1, data=PB))
+         poly= lm(PB~poly(E,degree=poly.degree),data= PB),
+         gam= gam(PB~s(E), data=PB),
+         gam.adaptive= gam(PB~s(E,k=knots,bs="ad"), data=PB),
+         mpi= scam(PB~s(E, bs="mpi"),data=PB),
+         mpd= scam(PB~s(E, bs="mpd"),data=PB),
+         cx= scam(PB~s(E, bs="cx"),data=PB),
+         cv= scam(PB~s(E, bs="cv"),data=PB),
+         micx= scam(PB~s(E, bs="micx"),data=PB),
+         micv= scam(PB~s(E, bs="micv"),data=PB),
+         mdcx= scam(PB~s(E, bs="mdcx"),data=PB),
+         mdcv= scam(PB~s(E, bs="mdcv"),data=PB),
+         avg= lm(PB - 0*E ~ 1, data=PB) ,
+         custom = do.call(custom.type , list(formula, data = PB))
+  )
 }
 
 
