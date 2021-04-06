@@ -173,7 +173,7 @@ PB.for.projection.f= function(PvsE, Eproj, add.residuals=add.resids){
 #' @param add.residuals if yes=1, no=0. DO NOT USE ANY OTHER VALUE!! This formulation is faster because it avoids an if statement
 #' @keywords P/B, E
 #' @export
-PB.for.projection.f.mv <- function(PvsE  , Eproj , add.residual = 1 , var_names = 'E' ) {
+PB.for.projection.f.mv <- function(PvsE  , Eproj , add.residuals = 1 , var_names = 'E' ) {
   median.prediction = Eproj[,,1] * -9999
   for (i in 1:ncol(Eproj)) {
     newdat = data.frame(Eproj[,i,])
