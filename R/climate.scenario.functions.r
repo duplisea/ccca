@@ -109,6 +109,31 @@ Eprojnorm.f= function(Edist.a, Edist.b, Emean.shift=1, proj.years, N){
   E
 }
 
+#' New Multi-Var EProj Norm (assumes E's are unrelated/not correlated)
+#' @param ... The E variables you are projecting on
+#' @param E.dist.b The standard deviation of the normal distribution
+#' @param Emean.shift The shift if the mean. This is done rather than changing the mean directly so it is generic for variety of distributions
+#' @param proj.years The number of years to project into the future
+#' @param N The number of different realisations of the future to create
+#' @keywords environmental variable, climate scenario, projection , multivar
+#' @export
+#' @examples
+#' Eprojnorm.f.mv(E1 = PB$E1 , E2 = PB$E2 , Emean.shift=0, proj.years=10, N=23)
+Eprojnorm.f.mv <- function (... , Emean.shift = 1 , proj.years , N) {
+  Evars = list(...)
+  a = array(dim = c(proj.years , N , length(Evars)))
+  for(i in 1:length(Evars)) {
+    E = Evars[[i]]
+    Edist.a = norm.fit.f(E=E)$estimate[1]
+    Edist.b = norm.fit.f(E=E)$estimate[2]
+    a[,,i] = matrix(
+      rnorm(proj.years * N, mean = Edist.a, sd = Edist.b) +
+        Emean.shift,  ncol = N, nrow = proj.years
+    )
+  }
+  return(a)
+}
+
 #' Sample the P/B values themselves rather than an environmental variable and then calculating P/B.
 #'
 #' @param PBvec the vector of PB values calculated from running the function PB.f
@@ -140,6 +165,27 @@ PB.for.projection.f= function(PvsE, Eproj, add.residuals=add.resids){
   PB.prediction= median.prediction+error.prediction
   PB.prediction
 }
+
+#' A function calculated P/B for projection based on Multi-Var climate scenario. It samples the residuals of the fitted relationship and adds one to each draw
+#'
+#' @param PvsE The fitted PB vs E model object
+#' @param Eproj The array of E values for the projection. From running Eprojgamma.f
+#' @param add.residuals if yes=1, no=0. DO NOT USE ANY OTHER VALUE!! This formulation is faster because it avoids an if statement
+#' @keywords P/B, E
+#' @export
+PB.for.projection.f.mv <- function(PvsE  , Eproj , add.residual = 1 , var_names = 'E' ) {
+  median.prediction = Eproj[,,1] * -9999
+  for (i in 1:ncol(Eproj)) {
+    newdat = data.frame(Eproj[,i,])
+    names(newdat) = var_names
+    median.prediction[, i] = predict(PvsE, newdata = newdat)
+  }
+  error.prediction = PvsE.resids.f(PvsE, proj.years = nrow(Eproj),
+                                   N = ncol(Eproj)) * add.residuals
+  PB.prediction = median.prediction + error.prediction
+  PB.prediction
+}
+
 
 #' A function random sample of residuals for PB vs E relationship, creates additive terms for the P/B samples
 #'
